@@ -40,47 +40,69 @@ os.makedirs(PUBLIC_DIR, exist_ok=True)
 # ----------------------------------------------------------------------
 
 def reset_corrupt_db():
-    print("[DB] Malformed database file detected. Resetting SQLite database...")
-    for ext in ['', '-wal', '-shm']:
+    print("[DB] Malformed or corrupt database file detected. Auto-repairing SQLite database...")
+    for ext in ['', '-wal', '-shm', '-journal']:
         f = DB_PATH + ext
         if os.path.exists(f):
             try:
+                with open(f, 'w') as fp:
+                    fp.truncate(0)
                 os.remove(f)
+                print(f"[DB] Truncated and removed corrupt file: {f}")
             except Exception as e:
                 print(f"[DB] Error removing {f}: {e}")
 
+def configure_db(conn):
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = DELETE")
+    conn.execute("PRAGMA busy_timeout = 20000")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    return conn
+
 def get_db():
+    conn = None
     try:
         conn = sqlite3.connect(DB_PATH, timeout=20.0)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("SELECT 1 FROM sqlite_master LIMIT 1")
+        configure_db(conn)
+        conn.execute("SELECT count(*) FROM sqlite_master").fetchone()
         return conn
     except sqlite3.DatabaseError as e:
-        if "malformed" in str(e).lower() or "disk image" in str(e).lower() or "corrupt" in str(e).lower():
-            reset_corrupt_db()
-            conn = sqlite3.connect(DB_PATH, timeout=20.0)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA journal_mode = WAL")
-            init_db()
-            return conn
-        raise
+        print(f"[DB] Database error encountered ({e}). Triggering auto-recovery...")
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        reset_corrupt_db()
+        conn = sqlite3.connect(DB_PATH, timeout=20.0)
+        configure_db(conn)
+        _do_init_db(conn)
+        return conn
 
 def init_db():
+    conn = None
     try:
-        _do_init_db()
+        conn = sqlite3.connect(DB_PATH, timeout=20.0)
+        configure_db(conn)
+        _do_init_db(conn)
+        conn.close()
     except sqlite3.DatabaseError as e:
-        if "malformed" in str(e).lower() or "disk image" in str(e).lower() or "corrupt" in str(e).lower():
-            reset_corrupt_db()
-            _do_init_db()
-        else:
-            raise
+        print(f"[DB] Database init error ({e}). Resetting database...")
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        reset_corrupt_db()
+        conn = sqlite3.connect(DB_PATH, timeout=20.0)
+        configure_db(conn)
+        _do_init_db(conn)
+        conn.close()
 
-def _do_init_db():
-    with sqlite3.connect(DB_PATH, timeout=20.0) as conn:
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.executescript("""
+
+def _do_init_db(conn):
+    conn.executescript("""
+
             CREATE TABLE IF NOT EXISTS admin (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 password_hash TEXT NOT NULL,
@@ -133,20 +155,20 @@ def _do_init_db():
             CREATE INDEX IF NOT EXISTS idx_monitored_ip ON monitored_ips (ip_address);
         """)
 
-        # Insert default settings if not exists
-        default_settings = {
-            "account_id": "",
-            "api_id": "",
-            "api_key": "",
-            "smtp_host": "",
-            "smtp_port": "587",
-            "smtp_user": "",
-            "smtp_pass": "",
-            "smtp_encryption": "tls",  # tls, ssl, none
-            "smtp_sender": "ddos-alerts@imperva-monitor.local",
-            "smtp_recipients": "admin@example.com",
-            "email_subject_template": "🚨 [DDoS Alert] Blocked Monitored IP Detected: {count} IP(s)",
-            "email_body_template": """<h2>⚠️ DDoS Mitigation Alert: Monitored IP Blocked</h2>
+    # Insert default settings if not exists
+    default_settings = {
+        "account_id": "",
+        "api_id": "",
+        "api_key": "",
+        "smtp_host": "",
+        "smtp_port": "587",
+        "smtp_user": "",
+        "smtp_pass": "",
+        "smtp_encryption": "tls",  # tls, ssl, none
+        "smtp_sender": "ddos-alerts@imperva-monitor.local",
+        "smtp_recipients": "admin@example.com",
+        "email_subject_template": "🚨 [DDoS Alert] Blocked Monitored IP Detected: {count} IP(s)",
+        "email_body_template": """<h2>⚠️ DDoS Mitigation Alert: Monitored IP Blocked</h2>
 <p>The DDoS Monitoring System has detected that one or more monitored IP addresses are actively being blocked under Imperva DDoS mitigation rules.</p>
 
 <h3>Detected Block Event Details:</h3>
@@ -168,14 +190,16 @@ def _do_init_db():
 <p style="margin-top: 20px;"><strong>Imperva Account ID:</strong> {account_id}</p>
 <p><strong>Total Blocked Monitored IPs in Cycle:</strong> {count}</p>
 <p style="color: #666; font-size: 12px; margin-top: 25px;"><em>This is an automated notification from the DDoS IP Notification Tool.</em></p>""",
-            "monitoring_interval_seconds": "60",
-            "monitoring_enabled": "false",
-            "cooldown_minutes": "15"
-        }
+        "monitoring_interval_seconds": "60",
+        "monitoring_enabled": "false",
+        "cooldown_minutes": "15"
+    }
 
-        for k, v in default_settings.items():
-            conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
-        conn.commit()
+    for k, v in default_settings.items():
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
+    conn.commit()
+
+
 
 init_db()
 
