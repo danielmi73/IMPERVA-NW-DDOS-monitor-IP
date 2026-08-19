@@ -30,7 +30,7 @@ aws ecr get-login-password --region "${REGION}" | docker login --username AWS --
 
 # 3. Build & Push Docker Image
 echo "🐳 Building Docker image..."
-docker build -t "${APP_NAME}:latest" .
+docker build --platform linux/amd64 -t "${APP_NAME}:latest" .
 
 echo "🏷️ Tagging image for ECR..."
 docker tag "${APP_NAME}:latest" "${ECR_URL}:latest"
