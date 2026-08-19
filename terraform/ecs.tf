@@ -8,8 +8,7 @@ resource "aws_ecs_cluster" "main" {
   }
 
   tags = {
-    Name        = "${var.app_name}-cluster"
-    Environment = var.environment
+    Name = "${var.app_name}-cluster"
   }
 }
 
@@ -69,8 +68,8 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "${var.app_name}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256  # 0.25 vCPU
-  memory                   = 512  # 512 MB
+  cpu                      = 256 # 0.25 vCPU
+  memory                   = 512 # 512 MB
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
@@ -78,8 +77,8 @@ resource "aws_ecs_task_definition" "app" {
     name = "data-volume"
 
     efs_volume_configuration {
-      file_system_id          = aws_efs_file_system.data.id
-      transit_encryption      = "ENABLED"
+      file_system_id     = aws_efs_file_system.data.id
+      transit_encryption = "ENABLED"
       authorization_config {
         access_point_id = aws_efs_access_point.data.id
         iam             = "DISABLED"
@@ -110,7 +109,7 @@ resource "aws_ecs_task_definition" "app" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
-          "awslogs-region"        = var.aws_region
+          "awslogs-region"        = var.region
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -124,12 +123,12 @@ resource "aws_ecs_task_definition" "app" {
 
 # ECS Fargate Service (desired_count = 1 for SQLite single writer integrity)
 resource "aws_ecs_service" "app" {
-  name                               = "${var.app_name}-service"
-  cluster                            = aws_ecs_cluster.main.id
-  task_definition                    = aws_ecs_task_definition.app.arn
-  desired_count                      = 1
-  launch_type                        = "FARGATE"
-  platform_version                   = "LATEST"
+  name                              = "${var.app_name}-service"
+  cluster                           = aws_ecs_cluster.main.id
+  task_definition                   = aws_ecs_task_definition.app.arn
+  desired_count                     = 1
+  launch_type                       = "FARGATE"
+  platform_version                  = "LATEST"
   health_check_grace_period_seconds = 60
 
   network_configuration {

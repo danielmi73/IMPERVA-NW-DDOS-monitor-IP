@@ -9,8 +9,7 @@ resource "aws_lb" "main" {
   enable_deletion_protection = false
 
   tags = {
-    Name        = "${var.app_name}-alb"
-    Environment = var.environment
+    Name = "${var.app_name}-alb"
   }
 }
 

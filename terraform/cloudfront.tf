@@ -74,7 +74,6 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 
   tags = {
-    Name        = "${var.app_name}-cloudfront"
-    Environment = var.environment
+    Name = "${var.app_name}-cloudfront"
   }
 }

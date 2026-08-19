@@ -6,8 +6,7 @@ resource "aws_efs_file_system" "data" {
   encrypted        = true
 
   tags = {
-    Name        = "${var.app_name}-efs"
-    Environment = var.environment
+    Name = "${var.app_name}-efs"
   }
 }
 

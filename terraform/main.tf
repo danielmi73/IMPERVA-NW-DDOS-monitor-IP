@@ -13,7 +13,19 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region = var.region
+
+  default_tags {
+    tags = {
+      Name               = var.tag_name
+      OwnerEmail         = var.tag_owner_email
+      ManagerEmail       = var.tag_manager_email
+      TeamEmail          = var.tag_team_email
+      Description        = var.tag_description
+      Environment        = var.tag_environment
+      DataClassification = var.tag_dataclassification
+    }
+  }
 }
 
 # Fetch available Availability Zones in il-central-1
@@ -28,8 +40,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name        = "${var.app_name}-vpc"
-    Environment = var.environment
+    Name = "${var.app_name}-vpc"
   }
 }
 
@@ -164,7 +175,6 @@ resource "aws_ecr_repository" "app" {
   }
 
   tags = {
-    Name        = "${var.app_name}-ecr"
-    Environment = var.environment
+    Name = "${var.app_name}-ecr"
   }
 }
