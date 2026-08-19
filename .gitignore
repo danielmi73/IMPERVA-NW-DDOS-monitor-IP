@@ -9,6 +9,11 @@ data/*
 .env
 .env.*
 *.env
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
 
 # Python
 venv/

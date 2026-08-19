@@ -6,43 +6,43 @@ variable "region" {
 
 variable "tag_name" {
   type        = string
-  default     = "DDoS NW Monitor IP  in AWS"
+  default     = ""
   description = "Name tag value"
 }
 
 variable "tag_owner_email" {
   type        = string
-  default     = "danny.milshtein@thalesgroup.com"
+  default     = ""
   description = "Owner email tag value"
 }
 
 variable "tag_manager_email" {
   type        = string
-  default     = "gabriele.buratti@thalesgroup.com"
+  default     = ""
   description = "Manager email tag value"
 }
 
 variable "tag_team_email" {
   type        = string
-  default     = "ww.dis.imperva.sales_all_se@thalesgroup.com"
+  default     = ""
   description = "Team email tag value"
 }
 
 variable "tag_description" {
   type        = string
-  default     = "Demo Lab for DDoS NW IP monitoring tool in AWS"
+  default     = ""
   description = "Description tag value"
 }
 
 variable "tag_environment" {
   type        = string
-  default     = "Demo"
+  default     = ""
   description = "Environment tag value"
 }
 
 variable "tag_dataclassification" {
   type        = string
-  default     = "THALES GROUP LIMITED DISTRIBUTION"
+  default     = ""
   description = "Data classification tag value"
 }
 

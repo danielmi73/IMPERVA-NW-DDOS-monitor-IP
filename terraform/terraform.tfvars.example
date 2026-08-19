@@ -1,0 +1,11 @@
+# AWS Region
+region = "il-central-1"
+
+# Resource Tagging Variables (Define your organization metadata)
+tag_name               = "DDoS NW Monitor IP in AWS"
+tag_owner_email        = "owner@example.com"
+tag_manager_email      = "manager@example.com"
+tag_team_email         = "team@example.com"
+tag_description        = "Demo Lab for DDoS NW IP monitoring tool in AWS"
+tag_environment        = "Demo"
+tag_dataclassification = "RESTRICTED / INTERNAL"

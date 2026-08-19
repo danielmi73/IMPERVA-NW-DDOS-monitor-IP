@@ -51,12 +51,24 @@ An enterprise-grade web application for monitoring **Imperva / Incapsula DDoS Pr
 docker compose up -d --build
 ```
 
-#### Option 2: Directly with Python
-```bash
-python3 server.py
-```
+#### Option 3: Deploy to AWS (`il-central-1`) with CloudFront & ELB
 
-By default, the server listens on **`http://localhost:5001`**. (To specify a custom port with Python directly, run `python3 server.py <port>`, e.g., `python3 server.py 8080`).
+Provision AWS infrastructure using Terraform in `terraform/`:
+
+1. Copy the example variable file and fill in your organizational tags:
+   ```bash
+   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+   ```
+2. Run deployment:
+   ```bash
+   cd terraform
+   terraform init
+   terraform apply
+   ```
+
+> 🔒 **Tagging & Privacy Note**: To protect privacy and prevent committing organization-specific metadata, default values for tagging variables (`tag_name`, `tag_owner_email`, `tag_manager_email`, `tag_team_email`, `tag_description`, `tag_environment`, `tag_dataclassification`) are kept **empty** in `variables.tf`. Please specify your custom tags in `terraform/terraform.tfvars`.
+
+By default, local servers listen on **`http://localhost:5001`**. (To specify a custom port with Python directly, run `python3 server.py <port>`, e.g., `python3 server.py 8080`).
 
 Open your browser to:
 👉 **`http://localhost:5001`**
