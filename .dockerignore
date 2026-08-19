@@ -1,0 +1,8 @@
+.git
+.gitignore
+venv/
+server/node_modules/
+tests/
+__pycache__/
+*.pyc
+.DS_Store
