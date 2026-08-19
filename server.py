@@ -39,14 +39,47 @@ os.makedirs(PUBLIC_DIR, exist_ok=True)
 # Database Initialization & Helpers
 # ----------------------------------------------------------------------
 
+def reset_corrupt_db():
+    print("[DB] Malformed database file detected. Resetting SQLite database...")
+    for ext in ['', '-wal', '-shm']:
+        f = DB_PATH + ext
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+            except Exception as e:
+                print(f"[DB] Error removing {f}: {e}")
+
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=20.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
-    return conn
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=20.0)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("SELECT 1 FROM sqlite_master LIMIT 1")
+        return conn
+    except sqlite3.DatabaseError as e:
+        if "malformed" in str(e).lower() or "disk image" in str(e).lower() or "corrupt" in str(e).lower():
+            reset_corrupt_db()
+            conn = sqlite3.connect(DB_PATH, timeout=20.0)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode = WAL")
+            init_db()
+            return conn
+        raise
 
 def init_db():
-    with get_db() as conn:
+    try:
+        _do_init_db()
+    except sqlite3.DatabaseError as e:
+        if "malformed" in str(e).lower() or "disk image" in str(e).lower() or "corrupt" in str(e).lower():
+            reset_corrupt_db()
+            _do_init_db()
+        else:
+            raise
+
+def _do_init_db():
+    with sqlite3.connect(DB_PATH, timeout=20.0) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode = WAL")
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS admin (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -795,7 +828,16 @@ class DDoSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        try:
+            self._handle_do_GET()
+        except Exception as e:
+            if self.path.startswith('/api/'):
+                return self._send_error(f"Internal server error: {e}", status=500)
+            raise
+
+    def _handle_do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
@@ -961,7 +1003,14 @@ class DDoSRequestHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        try:
+            self._handle_do_POST()
+        except Exception as e:
+            return self._send_error(f"Internal server error: {e}", status=500)
+
+    def _handle_do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
+
         path = parsed.path
 
         # Setup (First time password creation)
@@ -1252,7 +1301,14 @@ class DDoSRequestHandler(http.server.SimpleHTTPRequestHandler):
         self._send_error(f"Endpoint {path} not found.", status=404)
 
     def do_DELETE(self):
+        try:
+            self._handle_do_DELETE()
+        except Exception as e:
+            return self._send_error(f"Internal server error: {e}", status=500)
+
+    def _handle_do_DELETE(self):
         parsed = urllib.parse.urlparse(self.path)
+
         path = parsed.path
 
         if not self._require_auth():

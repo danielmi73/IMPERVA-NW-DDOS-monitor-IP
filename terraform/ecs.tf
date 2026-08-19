@@ -130,6 +130,10 @@ resource "aws_ecs_service" "app" {
   launch_type                       = "FARGATE"
   platform_version                  = "LATEST"
   health_check_grace_period_seconds = 60
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 50
+
+
 
   network_configuration {
     subnets          = [aws_subnet.private_1.id, aws_subnet.private_2.id]
